@@ -95,44 +95,37 @@ not counting initial BSSF estimate)</returns> '''
         cities = self._scenario.getCities()
         # Count the cities
         ncities = len(cities)
-        # Create the tour
-        tour = []
         # Create a priority queue
-        pq =[]
-
+        pq = []
+        # Create an initial partial solution
         # Create non-reduced TSP matrix
-        m = self.getTSPMatrix(cities)
-
+        M = self.getTSPMatrix(cities)
+        # Set previous bound to 0
+        prev_bound = 0
         # Reduce the matrix
-        self.reduceMatrix(m)
-
-        # Create child states
-
-        # for each city that is not in tour (the partial solution)
-        # Count each child state generated
-        # child = self.getChild(dest)
-
-        # Check if child bound is better than bssf
-        # Insert child into priority queue
-        pq.heappush()
+        bound = self.reduceMatrix(M, prev_bound)
+        # Insert the initial partial solution into the priority queue
+        partials = {bound:{'M':M, 'route':[]}}
+        heapq.heappush(pq, bound)  # Empty route
 
         # Iterate while time is not expired and the priority queue is not empty
-        while time_allowance < time.time() - start_time and pq.count() != 0:
-            # Pop parent off queue
-            parent = pq.pop()
-            # Add the parent to the tour
-            tour.append(parent)
+        while time_allowance > time.time() - start_time and len(pq) != 0:
+            # Pop parent partial solution off queue
+            parent_bound = pq.pop()
+            parent_M = partials[parent_bound]['M']
+            parent_route = partials[parent_bound]['route']
+            # Generate children
+
             # Create a child for each city that is not in the tour
             # Count each child state generated
             # for each city not in tour
             # Create child
             # If bound of child is less than bssf
-            pq.heappush()
-
+            pass
             # Check for a solution
-            if len(tour) == ncities:
+            # if len(route) == ncities:
                 # If that solution improves bssf
-                bssf = TSPSolution(tour)
+                # bssf = TSPSolution(route)
                 # Trim the priority queue
                 # else keep previous bssf
 
@@ -145,17 +138,48 @@ not counting initial BSSF estimate)</returns> '''
         :param cities: List of City objects
         :return: np.matrix
         """
-        pass
+        ncities = len(cities)   # Get the number of cities
+        M = np.zeros((ncities, ncities))  # Initialize a matrix of zeros
+        # For each city
+        for row in range(ncities):
+            # And for every column
+            for col in range(ncities):
+                # Get the cost to the other city
+                to_city = cities[col]       # The city we are going to
+                from_city = cities[row]     # The city we are leaving
+                M[row][col] = from_city.costTo(to_city)
+        # Return the matrix
+        return M
 
-    def reduceMatrix(self, m):
+    def reduceMatrix(self, M, prev_bound):
         """
+        Make it so there is a zero in each row and each col. Also calculate the bound
         Reduce a matrix
         :param m: A np.matrix
         :return: A reduced matrix, bound int
         """
-        pass
+        bound = prev_bound  # Initialize bound to be previous lower bound
+        ncities = len(M)
+        # Perform a row reduction
+        # Iterate over each row
+        for i in range(ncities):
+            min_value = np.min(M[i])
+            M[i] -= min_value
+            # Add the subtracted value to the bound
+            bound += min_value
 
-    def getChild(self, dest):
+        # Perform a col reduction
+        # Iterate over each col
+        for j in range(ncities):
+            # Find the value and index of the smallest element in the row
+            min_value = np.min(M[:, j])
+            M[:, j] -= min_value
+            bound += min_value
+
+        return bound
+
+
+    def generateChild(self, dest):
         """
         Get a child solution based on what city we are going to next
         :param dest: The city we are going to next

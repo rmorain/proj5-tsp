@@ -177,8 +177,14 @@ class City:
             cost += (other_city._elevation - self._elevation)
             if cost < 0.0:
                 cost = 0.0
-        #cost *= SCALE_FACTOR
-
+        # cost *= SCALE_FACTOR
 
         return int(math.ceil(cost * self.MAP_SCALE))
+
+
+class PartialSolution:
+    def __init__(self, M, bound, route):
+        self.M = M
+        self.bound = bound
+        self.route = route
 
