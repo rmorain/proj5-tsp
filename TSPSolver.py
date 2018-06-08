@@ -87,9 +87,84 @@ not counting initial BSSF estimate)</returns> '''
         pass
 
     def branchAndBound( self, start_time, time_allowance=60.0 ):
+        # Declare results dictionary
+        results = {}
+        # Start the timer
+        start_time = time.time()
+        # Get the cities
+        cities = self._scenario.getCities()
+        # Count the cities
+        ncities = len(cities)
+        # Create the tour
+        tour = []
+        # Create a priority queue
+        pq =[]
+
+        # Create non-reduced TSP matrix
+        m = self.getTSPMatrix(cities)
+
+        # Reduce the matrix
+        self.reduceMatrix(m)
+
+        # Create child states
+
+        # for each city that is not in tour (the partial solution)
+        # Count each child state generated
+        # child = self.getChild(dest)
+
+        # Check if child bound is better than bssf
+        # Insert child into priority queue
+        pq.heappush()
+
+        # Iterate while time is not expired and the priority queue is not empty
+        while time_allowance < time.time() - start_time and pq.count() != 0:
+            # Pop parent off queue
+            parent = pq.pop()
+            # Add the parent to the tour
+            tour.append(parent)
+            # Create a child for each city that is not in the tour
+            # Count each child state generated
+            # for each city not in tour
+            # Create child
+            # If bound of child is less than bssf
+            pq.heappush()
+
+            # Check for a solution
+            if len(tour) == ncities:
+                # If that solution improves bssf
+                bssf = TSPSolution(tour)
+                # Trim the priority queue
+                # else keep previous bssf
+
+
+        pass
+
+    def getTSPMatrix(self, cities):
+        """
+        Create a matrix that represents the cities relationship to each other
+        :param cities: List of City objects
+        :return: np.matrix
+        """
+        pass
+
+    def reduceMatrix(self, m):
+        """
+        Reduce a matrix
+        :param m: A np.matrix
+        :return: A reduced matrix, bound int
+        """
+        pass
+
+    def getChild(self, dest):
+        """
+        Get a child solution based on what city we are going to next
+        :param dest: The city we are going to next
+        :return: Solution object (may be a partial solution)
+        """
         pass
 
     def fancy( self, start_time, time_allowance=60.0 ):
         pass
+
 
 
