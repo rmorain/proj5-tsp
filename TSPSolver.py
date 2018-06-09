@@ -15,6 +15,7 @@ import time
 import numpy as np
 from TSPClasses import *
 import heapq
+import copy
 
 
 
@@ -97,6 +98,15 @@ not counting initial BSSF estimate)</returns> '''
         ncities = len(cities)
         # Create a priority queue
         pq = []
+        # Child count
+        child_count = 0
+        # BSSF update count
+        bssf_count = 0
+        max_states = 0
+        pruned_count = 0
+        # Initialize the best solution so far
+        bssf = PartialSolution(np.zeros((ncities, ncities)), math.inf, [])  # Initialize a matrix of zeros
+
         # Create an initial partial solution
         # Create non-reduced TSP matrix
         M = self.getTSPMatrix(cities)
@@ -105,32 +115,56 @@ not counting initial BSSF estimate)</returns> '''
         # Reduce the matrix
         bound = self.reduceMatrix(M, prev_bound)
         # Insert the initial partial solution into the priority queue
-        partials = {bound:{'M':M, 'route':[]}}
+        partials = {}
+        partials[bound] = PartialSolution(M, bound, [0])
         heapq.heappush(pq, bound)  # Empty route
 
         # Iterate while time is not expired and the priority queue is not empty
         while time_allowance > time.time() - start_time and len(pq) != 0:
             # Pop parent partial solution off queue
-            parent_bound = pq.pop()
-            parent_M = partials[parent_bound]['M']
-            parent_route = partials[parent_bound]['route']
-            # Generate children
+            # Get other parent details
+            parent = partials[heapq.heappop(pq)]
+            # Generate n children
+            # Get the row of the city we are currently at
+            i = parent.route[len(parent.route) - 1]
+            for j in range(ncities):
+                # Check if edge exists
+                if parent.M[i][j] != math.inf:
+                    child_count += 1  # Increment the number of children we have created
+                    child = self.generateChild(parent, i, j)
+                    # Check if child's bound is less than the current BSSF bound
+                    if child.bound < bssf.bound:
+                        # Add the child to the priority queue
+                        heapq.heappush(pq, child.bound)
+                        partials[child.bound] = child
+                        # Check if the child is a solution
+                        if len(child.route) == ncities:
+                            bssf_count += 1
+                            bssf = child
+                            pq_len = len(pq)
+                            if max_states < pq_len:
+                                max_states = pq_len
+                            # Trim the priority queue
+                            self.trim(pq, bssf.bound)
+                            pruned_count += pq_len - len(pq)
 
-            # Create a child for each city that is not in the tour
-            # Count each child state generated
-            # for each city not in tour
-            # Create child
-            # If bound of child is less than bssf
-            pass
-            # Check for a solution
-            # if len(route) == ncities:
-                # If that solution improves bssf
-                # bssf = TSPSolution(route)
-                # Trim the priority queue
-                # else keep previous bssf
+        # Initialize results array
+        c = []
 
+        for x in range(len(bssf.route)):
+            c.append(cities[bssf.route[x]])
 
-        pass
+        bssf = TSPSolution(c)
+        results['cost'] = bssf.costOfRoute()
+        results['time'] = time.time() - start_time
+        results['count'] = bssf_count
+        results['soln'] = bssf
+
+        print('Total # of states created: {}' .format(child_count))
+        print('Total # of states pruned: {}' .format(pruned_count))
+        print('Max # of states at a time: {}' .format(max_states))
+
+        return results
 
     def getTSPMatrix(self, cities):
         """
@@ -164,6 +198,8 @@ not counting initial BSSF estimate)</returns> '''
         # Iterate over each row
         for i in range(ncities):
             min_value = np.min(M[i])
+            if min_value == math.inf:
+                continue
             M[i] -= min_value
             # Add the subtracted value to the bound
             bound += min_value
@@ -173,19 +209,53 @@ not counting initial BSSF estimate)</returns> '''
         for j in range(ncities):
             # Find the value and index of the smallest element in the row
             min_value = np.min(M[:, j])
+            if min_value == math.inf:
+                continue
             M[:, j] -= min_value
             bound += min_value
 
         return bound
 
-
-    def generateChild(self, dest):
+    def generateChild(self, parent, i, j):
         """
         Get a child solution based on what city we are going to next
-        :param dest: The city we are going to next
-        :return: Solution object (may be a partial solution)
+        :param parent:
+        :param i
+        :param j
+        :return: child PartialSolution object
         """
-        pass
+        child = copy.deepcopy(parent)
+        # Look at the value in M to get the child's bound
+        child.bound += child.M[i][j]
+
+        # Eliminate the row i and col j from further consideration
+        x = np.ones(len(parent.M))*math.inf
+        child.M[i] = x
+        child.M[:, j] = x
+        # Take out arrival edge
+        child.M[j][i] = math.inf
+
+        # Reduce the child matrix
+        child.bound = self.reduceMatrix(child.M, child.bound)
+
+        # Add destination city to route
+        child.route.append(j)
+
+        return child
+
+    def trim(self, pq, bssf_bound):
+        """
+        Get rid of elements that have a bound that is higher than the bound of the bssf
+        :param pq: Priority Queue
+        :param bssf_bound: The bound that we are comparing the elements of the pq
+        :return: nothing
+        """
+        for x in range(len(pq)):
+            if pq[x] >= bssf_bound:
+                del pq[x:]
+                break
+
+
 
     def fancy( self, start_time, time_allowance=60.0 ):
         pass
