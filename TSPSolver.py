@@ -104,8 +104,7 @@ not counting initial BSSF estimate)</returns> '''
         bssf_count = 0
         max_states = 0
         pruned_count = 0
-        # Initialize the best solution so far
-        bssf = PartialSolution(np.zeros((ncities, ncities)), math.inf, [])  # Initialize a matrix of zeros
+
 
         # Create an initial partial solution
         # Create non-reduced TSP matrix
@@ -118,6 +117,9 @@ not counting initial BSSF estimate)</returns> '''
         partials = {}
         partials[bound] = PartialSolution(M, bound, [0])
         heapq.heappush(pq, bound)  # Empty route
+
+        # Initialize the best solution so far
+        bssf = self.initBSSF(partials[bound])
 
         # Iterate while time is not expired and the priority queue is not empty
         while time_allowance > time.time() - start_time and len(pq) != 0:
@@ -242,6 +244,24 @@ not counting initial BSSF estimate)</returns> '''
         child.route.append(j)
 
         return child
+
+    def initBSSF(self, partialSolution):
+        bssf = copy.deepcopy(partialSolution)
+        ncities = len(bssf.M)
+        while len(bssf.route) != ncities:
+            i = bssf.route[len(bssf.route) - 1]
+            for j in range(ncities):
+                skip = False
+                for x in range(len(bssf.route)):
+                    if bssf.route[x] == j:
+                        skip = True
+
+                # Check if edge exists
+                if not skip and bssf.M[i][j] != math.inf:
+                    bssf = self.generateChild(bssf, i, j)
+                    break
+        return bssf
+
 
     def trim(self, pq, bssf_bound):
         """
